@@ -28,13 +28,13 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, req *http.Request) {
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "could't decode parameters", err)
+		respondWithError(w, http.StatusInternalServerError, "Could't decode parameters", err)
 		return
 	}
 
 	user, err := cfg.db.CreateUser(req.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "could't create user", err)
+		respondWithError(w, http.StatusInternalServerError, "Could't create user", err)
 		return
 	}
 
@@ -46,5 +46,4 @@ func (cfg *apiConfig) handlerUsers(w http.ResponseWriter, req *http.Request) {
 			Email:     user.Email,
 		},
 	})
-
 }
