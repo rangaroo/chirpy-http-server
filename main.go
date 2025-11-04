@@ -9,17 +9,24 @@ import (
 	"net/http"
 	"sync/atomic"
 	"os"
+
 	"github.com/rangaroo/chirpy-http-server/internal/database"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	dbQueries      *database.Queries
+	db             *database.Queries
+	platform       string
 }
 
 func main() {
 	const filePathRoot = "."
 	const port = "8080"
+
+	godotenv.Load()
+
+	platform := os.Getenv("PLATFORM")
 
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
@@ -29,7 +36,8 @@ func main() {
 
 	apiCfg := apiConfig {
 		fileserverHits: atomic.Int32{},
-		dbQueries:      database.New(db),
+		db:             database.New(db),
+		platform:       platform,
 	}
 
 	mux := http.NewServeMux()
@@ -38,6 +46,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 	mux.HandleFunc("POST /api/validate_chirp", handlerValidate)
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUsers)
 
 	server := &http.Server{
 		Addr:     ":" + port,

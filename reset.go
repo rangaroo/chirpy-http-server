@@ -3,7 +3,19 @@ package main
 import "net/http"
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
-		cfg.fileserverHits.Store(0)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hits has been reset\n"))
+	if cfg.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Reset is only in 'dev' platform"))
+		return
+	}
+
+	cfg.fileserverHits.Store(0)
+	err := cfg.db.Reset(req.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("could't reset the database: " + err.Error()))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hits count and database have been reset\n"))
 }
