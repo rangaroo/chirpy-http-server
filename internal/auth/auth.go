@@ -6,11 +6,21 @@ import (
 	"strings"
 	"errors"
 	"time"
+	"crypto/rand"
+	"encoding/hex"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/alexedwards/argon2id"
 )
+
+func MakeRefreshToken() (string, error) {
+	key := make([]byte, 32)
+	rand.Read(key)
+
+	token := hex.EncodeToString(key)
+	return token, nil
+}
 
 func GetBearerToken(headers http.Header) (string, error) {
 	headerString := headers.Get("Authorization")

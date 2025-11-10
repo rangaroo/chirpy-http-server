@@ -6,18 +6,19 @@ import (
 	"time"
 
 	"github.com/rangaroo/chirpy-http-server/internal/auth"
+	"github.com/rangaroo/chirpy-http-server/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
 		Password         string `json:"password"`
 		Email            string `json:"email"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 
 	type returnVals struct {
 		User
-		Token string `json:"token"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -40,15 +41,19 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	secs := params.ExpiresInSeconds
-	expiresIn := time.Duration(secs) * time.Second
-	if expiresIn > time.Hour || secs <= 0 {
-		expiresIn = time.Hour
-	}
-
-	tokenString, err := auth.MakeJWT(user.ID, cfg.tokenSecret, expiresIn)
+	tokenString, err := auth.MakeJWT(user.ID, cfg.tokenSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could't create a token string", err)
+		return
+	}
+
+	refreshTokenString, _ := auth.MakeRefreshToken()
+	refreshToken, err := cfg.db.CreateRefreshToken(req.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshTokenString,
+		UserID:    user.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could't create a refresh token", err)
 		return
 	}
 
@@ -59,6 +64,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: tokenString,
+		Token:        tokenString,
+		RefreshToken: refreshToken.Token,
 	})
 }
