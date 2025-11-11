@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/rangaroo/chirpy-http-server/internal/auth"
 	"github.com/google/uuid"
 )
 
@@ -15,9 +16,19 @@ func (cfg *apiConfig) handlerUsersUpgrade(w http.ResponseWriter, req *http.Reque
 		} `json:"data"`
 	}
 
+	apiKey, err := auth.GetAPIKey(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Could't parse API key", err)
+		return
+	}
+	if apiKey != cfg.apiKey {
+		respondWithError(w, http.StatusUnauthorized, "Invalid API key", err)
+		return
+	}
+
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could't decode parameters", err)
 		return

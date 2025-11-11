@@ -14,6 +14,17 @@ import (
 	"github.com/alexedwards/argon2id"
 )
 
+func GetAPIKey(headers http.Header) (string, error) {
+	headerString := headers.Get("Authorization")
+
+	splitted := strings.Fields(headerString)
+	if len(splitted) != 2  || splitted[0] != "ApiKey" {
+		return "", fmt.Errorf("Wrong header format: 'ApiKey <api_key>'")
+	}
+
+	return splitted[1], nil
+}
+
 func MakeRefreshToken() (string, error) {
 	key := make([]byte, 32)
 	rand.Read(key)
